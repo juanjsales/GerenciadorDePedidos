@@ -144,6 +144,7 @@ function App() {
   };
 
   const handleEditPedido = (pedido) => {
+    // Abre o modal de edição/visualização
     setEditingPedido({
       ...pedido,
       data_pedido: pedido.data_pedido,
@@ -179,7 +180,6 @@ function App() {
   const sortedOrders = [...filteredOrders].sort((a, b) => {
     const statusA = a.Status;
     const statusB = b.Status;
-    // Usamos a Data pedido para ordenação
     const dateA = a['Data pedido'].getTime();
     const dateB = b['Data pedido'].getTime();
 
@@ -316,8 +316,12 @@ function App() {
                 <div className="space-y-4">
                   {/* USANDO sortedOrders para exibição */}
                   {sortedOrders.slice(0, 20).map((order, index) => (
-                    <div key={order.id || index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                      <div className="flex-1">
+                    <div 
+                      key={order.id || index} 
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => handleEditPedido(order)} // Ação: Abrir modal de detalhes/edição
+                    >
+                      <div className="flex-1 pointer-events-none">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold">{order.Tema || 'Sem tema'}</h3>
                           <Badge variant={order.Status === 'Pago' ? 'default' : 'secondary'}>
@@ -346,7 +350,7 @@ function App() {
                             {order.Status === 'Pendente' && (
                                 <Button
                                     size="sm"
-                                    onClick={() => handleMarkAsPaid(order)}
+                                    onClick={(e) => { e.stopPropagation(); handleMarkAsPaid(order); }}
                                     className="bg-green-500 hover:bg-green-600 text-white"
                                 >
                                     <Check className="h-3 w-3 mr-1" /> Pago
@@ -356,14 +360,14 @@ function App() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleEditPedido(order)}
+                            onClick={(e) => { e.stopPropagation(); handleEditPedido(order); }}
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleDeletePedido(order)}
+                            onClick={(e) => { e.stopPropagation(); handleDeletePedido(order); }}
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -378,7 +382,6 @@ function App() {
           </TabsContent>
 
           <TabsContent value="calendario">
-            {/* Calendário configurado para receber props de intervalo e dia atual */}
             <CalendarComponent 
                 orders={orders} 
                 showToday={true}
