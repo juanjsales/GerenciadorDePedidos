@@ -3,12 +3,28 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx'
-import { Calendar, Package, TrendingUp, Clock, Plus, Edit, Trash2, Heart } from 'lucide-react'
+import { Calendar, Package, TrendingUp, Clock, Plus, Edit, Trash2, Heart, Check } from 'lucide-react'
 import { Calendar as CalendarComponent } from './components/Calendar.jsx'
 import { RevenueChart, StatusChart, BoleiraChart, TypeChart, OrdersOverTimeChart, BoleiraRevenueChart, BoleiraComparisonChart } from './components/Charts.jsx'
 import { PedidoForm } from './components/PedidoForm.jsx'
 import { apiService } from './services/api.js'
 import './App.css'
+
+// Função para formatar a data, lidando com datas inválidas ou nulas
+const formatDate = (dateInput) => {
+    if (!dateInput) return 'N/A';
+    
+    // Converte a entrada para objeto Date. O GAS deve enviar em formato ISO (YYYY-MM-DD)
+    const date = new Date(dateInput);
+    
+    // Verifica se a data é inválida
+    if (isNaN(date.getTime())) {
+        return 'N/A';
+    }
+
+    // Formata para DD/MM/AAAA
+    return date.toLocaleDateString('pt-BR');
+}
 
 function App() {
   const [orders, setOrders] = useState([])
@@ -32,7 +48,7 @@ function App() {
     if (statusFilter === 'Todos') {
       setFilteredOrders(orders)
     } else {
-      setFilteredOrders(orders.filter(order => order.status === statusFilter))
+      setFilteredOrders(orders.filter(order => order.Status === statusFilter))
     }
   }, [statusFilter, orders])
 
@@ -44,9 +60,13 @@ function App() {
         apiService.getStats()
       ])
 
-      if (pedidosResponse.success) {
-        const processedOrders = pedidosResponse.data.map(order => ({
+      const pedidosData = pedidosResponse.data || pedidosResponse;
+      const statsData = statsResponse.data || statsResponse;
+
+      if (pedidosData) {
+        const processedOrders = pedidosData.map(order => ({
           ...order,
+          // Garante que as propriedades de data sejam objetos Date ou null
           'Data pedido': new Date(order.data_pedido),
           'Data entrega': order.data_entrega ? new Date(order.data_entrega) : null,
           'Data pagamento': order.data_pagamento ? new Date(order.data_pagamento) : null,
@@ -54,16 +74,16 @@ function App() {
           'Tema': order.tema,
           'Aro': order.aro,
           'Tipo': order.tipo,
-          'Valor': order.valor,
+          'Valor': parseFloat(order.valor), 
           'Aniversariante': order.aniversariante,
-          'Status': order.status
+          'Status': order.status // O status vem calculado do GAS
         }))
         setOrders(processedOrders)
         setFilteredOrders(processedOrders)
       }
 
-      if (statsResponse.success) {
-        setStats(statsResponse.data)
+      if (statsData) {
+        setStats(statsData)
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
@@ -85,9 +105,45 @@ function App() {
       setEditingPedido(null)
     } catch (error) {
       console.error('Erro ao salvar pedido:', error)
+      alert(`Erro ao salvar pedido: ${error.message || 'Verifique o console.'}`) 
       throw error
     }
   }
+
+  const handleMarkAsPaid = async (pedido) => {
+    if (!window.confirm(`Marcar o pedido "${pedido.Tema || 'Sem tema'}" como PAGO na data de hoje (${formatDate(new Date())})?`)) {
+        return;
+    }
+    
+    // Obtém a data atual no formato YYYY-MM-DD, que o GAS espera.
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const currentDateISO = `${year}-${month}-${day}`;
+
+    // O payload deve conter a chave que o GAS usa: data_pagamento
+    const updatePayload = {
+        data_pagamento: currentDateISO,
+        // O GAS cuidará do campo 'Status'
+    };
+
+    try {
+        setLoading(true);
+        const result = await apiService.updatePedido(pedido.id, updatePayload);
+        
+        if (result.success) {
+            await loadData(); // Recarrega os dados para atualizar os cards e a lista
+        } else {
+            alert("Erro ao marcar pedido como PAGO: " + (result.error || 'Tente novamente.'));
+        }
+    } catch (error) {
+        console.error('Erro ao marcar como pago:', error);
+        alert('Erro ao processar pagamento. Verifique o console.');
+    } finally {
+        setLoading(false);
+    }
+  };
 
   const handleEditPedido = (pedido) => {
     setEditingPedido({
@@ -100,7 +156,7 @@ function App() {
   }
 
   const handleDeletePedido = async (pedido) => {
-    if (window.confirm(`Tem certeza que deseja deletar o pedido "${pedido.tema || 'Sem tema'}"?`)) {
+    if (window.confirm(`Tem certeza que deseja deletar o pedido "${pedido.Tema || 'Sem tema'}"?`)) {
       try {
         await apiService.deletePedido(pedido.id)
         await loadData()
@@ -111,16 +167,15 @@ function App() {
     }
   }
 
-  const formatDate = (date) => {
-    if (!date || isNaN(date)) return 'N/A'
-    return date.toLocaleDateString('pt-BR')
-  }
-
+  // Renomeado formatDisplayDate para formatCurrency para evitar confusão de nomes
   const formatCurrency = (value) => {
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numericValue)) return 'R$ 0,00';
+    
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(value)
+    }).format(numericValue)
   }
 
   if (loading) {
@@ -259,13 +314,25 @@ function App() {
                           {formatCurrency(order.Valor || 0)}
                         </div>
                         <div className="text-sm text-gray-600 mb-2">
+                          {/* USO DO NOVO FORMATADOR DE DATA */}
                           <p>Pedido: {formatDate(order['Data pedido'])}</p>
                           <p>Entrega: {formatDate(order['Data entrega'])}</p>
                           {order['Data pagamento'] && (
                             <p>Pagamento: {formatDate(order['Data pagamento'])}</p>
                           )}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 justify-end">
+                            {/* BOTÃO MARCAR COMO PAGO - Aparece apenas para pedidos Pendentes */}
+                            {order.Status === 'Pendente' && (
+                                <Button
+                                    size="sm"
+                                    onClick={() => handleMarkAsPaid(order)}
+                                    className="bg-green-500 hover:bg-green-600 text-white"
+                                >
+                                    <Check className="h-3 w-3 mr-1" /> Pago
+                                </Button>
+                            )}
+
                           <Button
                             size="sm"
                             variant="outline"
@@ -323,4 +390,3 @@ function App() {
 }
 
 export default App
-
