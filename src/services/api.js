@@ -1,7 +1,7 @@
 // services/api.js
 
 // SUBSTITUA ESTE ENDPOINT PELA URL DO SEU GOOGLE APPS SCRIPT DEPLOYMENT!
-const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxitTBTyfxPw4sez-63bI45sGOMa4VguwvzgPaUlFP0ALG_B-8OdsFoA8G2VeXkdN8yGw/exec' 
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxwMgjj97AlHc5y3lKbo9Krw9m-RbKgjv9UV_UlFHnK24YForyFHBp8BIcoG3I_WZaA9A/exec' 
 
 class ApiService {
   async request(endpoint, options = {}) {
