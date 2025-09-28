@@ -175,23 +175,24 @@ function App() {
     }).format(numericValue)
   }
 
-  // --- LÓGICA DE ORDENAÇÃO DE PEDIDOS (NOVO) ---
+  // --- LÓGICA DE ORDENAÇÃO DE PEDIDOS ---
   const sortedOrders = [...filteredOrders].sort((a, b) => {
     const statusA = a.Status;
     const statusB = b.Status;
+    // Usamos a Data pedido para ordenação
     const dateA = a['Data pedido'].getTime();
     const dateB = b['Data pedido'].getTime();
 
     // 1. Prioridade: Pendentes primeiro
     if (statusA === 'Pendente' && statusB !== 'Pendente') {
-      return -1; // A (Pendente) vem antes de B (Pago)
+      return -1;
     }
     if (statusA !== 'Pendente' && statusB === 'Pendente') {
-      return 1; // B (Pendente) vem antes de A (Pago)
+      return 1;
     }
 
     // 2. Ordem Inversa de Data (mais recente primeiro)
-    return dateB - dateA; // Data B - Data A para ordem decrescente
+    return dateB - dateA;
   });
   // ----------------------------------------------
 
@@ -210,9 +211,67 @@ function App() {
   return (
     <div className="min-h-screen brand-gradient p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header e Cards de Estatísticas (Omitidos para brevidade) */}
-        {/* ... (código do Header e Cards) ... */}
         
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg">
+              <Heart className="h-8 w-8 accent-pink fill-current" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 logo-style">
+                Personalizados da Rô
+              </h1>
+              <p className="text-gray-600 italic">
+                Peças feitas com carinho, do seu jeito.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Cards de estatísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="border-accent-pink/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold accent-pink">{stats.total_pedidos}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-accent-pink/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pedidos Pagos</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.pedidos_pagos}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-accent-pink/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pedidos Pendentes</CardTitle>
+              <Clock className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{stats.pedidos_pendentes}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-accent-pink/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Faturamento</CardTitle>
+              <TrendingUp className="h-4 w-4 accent-pink" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold accent-pink">{formatCurrency(stats.faturamento_total)}</div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Tabs para diferentes seções */}
         <Tabs defaultValue="pedidos" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
@@ -255,7 +314,7 @@ function App() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* ALTERADO: USANDO sortedOrders */}
+                  {/* USANDO sortedOrders para exibição */}
                   {sortedOrders.slice(0, 20).map((order, index) => (
                     <div key={order.id || index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                       <div className="flex-1">
@@ -319,11 +378,11 @@ function App() {
           </TabsContent>
 
           <TabsContent value="calendario">
-            {/* NOVO: Passando props para o calendário */}
+            {/* Calendário configurado para receber props de intervalo e dia atual */}
             <CalendarComponent 
                 orders={orders} 
                 showToday={true}
-                dateRangeKey="Data entrega" // Assumindo que a data de entrega é o foco
+                dateRangeKey="Data entrega"
             />
           </TabsContent>
 
